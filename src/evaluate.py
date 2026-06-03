@@ -12,7 +12,7 @@ from .utils import ensure_dir, format_float, get_device, load_json, save_json
 
 
 def load_checkpoint(path: str | Path) -> dict[str, Any]:
-    return torch.load(Path(path), map_location="cpu")
+    return torch.load(Path(path), map_location="cpu", weights_only=False)
 
 
 def _normalize(features: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.ndarray:

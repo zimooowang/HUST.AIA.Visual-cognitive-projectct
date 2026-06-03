@@ -93,6 +93,8 @@ def flatten_sample(sample: Any, prefix: str = "") -> dict[str, Any]:
 def get_nested_value(sample: Any, dotted_key: str | None, default: Any = None) -> Any:
     if dotted_key is None:
         return default
+    if isinstance(sample, dict) and dotted_key in sample:
+        return sample[dotted_key]
     current = sample
     for part in dotted_key.split("."):
         if isinstance(current, dict) and part in current:
@@ -155,4 +157,3 @@ def format_float(value: float | None) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return "nan"
     return f"{value:.6f}"
-
