@@ -20,7 +20,7 @@ dataset:
   timestamp_key: null
   video_backend: pyav
   camera: auto
-  arm: left
+  arm: both
   max_frames: null
   train_ratio: 0.8
   val_ratio: 0.1

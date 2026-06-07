@@ -41,10 +41,17 @@ def plot_per_dim_mse(results: dict[str, Any], figure_dir: str | Path, report_dir
     path = figure_dir / "per_dim_mse.png"
     plt.figure(figsize=(10, 5))
     for method, payload in results.items():
-        plt.plot(payload["per_dim_mse_raw_test"], marker="o", label=method)
+        values = payload["per_dim_mse_raw_test"]
+        dims = np.arange(1, len(values) + 1)
+        plt.plot(dims, values, marker="o", label=method)
     plt.xlabel("Action dimension")
     plt.ylabel("Per-dim Test MSE")
     plt.title("Per-dimension Action Error")
+    if results:
+        first_payload = next(iter(results.values()))
+        n_dims = len(first_payload.get("per_dim_mse_raw_test", []))
+        if n_dims:
+            plt.xticks(np.arange(1, n_dims + 1))
     plt.legend()
     plt.tight_layout()
     plt.savefig(path, dpi=200)
@@ -148,6 +155,11 @@ def write_experiment_summary(
     random_mse = results.get("random", {}).get("mse_raw_test")
     brain_mse = results.get("brain_coreset", {}).get("mse_raw_test")
     full_mse = results.get("full", {}).get("mse_raw_test")
+    action_dim = 0
+    for payload in results.values():
+        if isinstance(payload, dict) and payload.get("action_dim") is not None:
+            action_dim = int(payload["action_dim"])
+            break
 
     conclusion = "结果尚未完整生成。"
     if random_mse is not None and brain_mse is not None:
@@ -175,7 +187,7 @@ def write_experiment_summary(
         "",
         f"- 数据集：{dataset_name}",
         "- 图像特征提取器：ResNet-18",
-        "- 动作维度：7",
+        f"- 动作维度：{action_dim or '未知'}",
         "- 数据划分：episode-level 80/10/10",
         f"- 核心集比例：{ratio_to_percent(ratio)}%",
         "",
@@ -212,4 +224,3 @@ def write_latex_table(results: dict[str, Any], output_path: str | Path) -> Path:
     lines.extend(["\\hline", "\\end{tabular}", ""])
     output_path.write_text("\n".join(lines), encoding="utf-8")
     return output_path
-

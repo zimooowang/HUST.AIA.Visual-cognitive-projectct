@@ -118,7 +118,7 @@ bash scripts/run_all.sh
 ### 输入输出
 
 - 输入：`[image_feature, language_feature]`
-- 输出：7 维单臂动作
+- 输出：默认 14 维全动作；也支持通过 `dataset.arm=left/right` 切换到 7 维单臂动作
 
 ### 特征提取
 
@@ -177,10 +177,10 @@ report_assets/tables/results_latex.txt
 - `Selection file not found`：先运行 `02_select_coreset.py`
 - 没有 CUDA：代码会自动回退到 CPU，运行速度会慢一些
 - action 维度不是 7 或 14：需要检查数据字段是否选错
+- 需要 14 维全动作训练：确认 `configs/default.yaml` 中 `dataset.arm` 为 `both`，并重新执行特征提取与后续流程
 - KMeans 聚类数量过大：代码会自动将 cluster 数量截断到候选样本数
 
 ## 与题目要求的对应关系
 
 - 题目要求的数据集读取、冻结视觉特征、MLP baseline、随机 10% 和脑启发 10% 对比，已经被完整纳入当前 pipeline
 - 该实现重点是“跑通实验闭环并产出可写入报告的材料”，不追求训练完整 VLA 大模型
-

@@ -58,6 +58,7 @@ def evaluate_checkpoint(
         "seed": int(checkpoint["seed"]),
         "n_train": int(len(checkpoint["train_indices"])),
         "checkpoint_path": str(checkpoint_path),
+        "action_dim": int(checkpoint["output_dim"]),
     }
     predictions_payload: dict[str, np.ndarray] = {}
 

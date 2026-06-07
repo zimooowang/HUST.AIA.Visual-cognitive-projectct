@@ -198,12 +198,15 @@ def _image_from_value(value: Any) -> Image.Image:
 
 
 def _action_from_value(value: Any, arm: str) -> np.ndarray:
+    arm = str(arm).lower()
     action = np.asarray(value, dtype=np.float32).reshape(-1)
     if action.size == 14:
         if arm == "left":
             return action[:7]
         if arm == "right":
             return action[7:14]
+        if arm in {"both", "all", "full"}:
+            return action
         raise ValueError(f"Unsupported arm selection: {arm}")
     if action.size == 7:
         return action
