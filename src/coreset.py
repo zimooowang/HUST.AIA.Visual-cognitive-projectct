@@ -12,6 +12,8 @@ from .utils import ratio_to_percent, save_json, zscore
 
 @dataclass
 class SelectionArtifacts:
+    """Paths to artifacts generated during coreset construction."""
+
     split_path: Path
     score_path: Path
     selection_paths: dict[str, Path]
@@ -24,6 +26,8 @@ def generate_episode_split(
     test_ratio: float,
     seed: int,
 ) -> dict[str, Any]:
+    """Split data at the episode level to avoid temporal leakage across sets."""
+
     if not np.isclose(train_ratio + val_ratio + test_ratio, 1.0):
         raise ValueError("train_ratio + val_ratio + test_ratio must equal 1.0")
 
@@ -45,6 +49,8 @@ def generate_episode_split(
     val_eps = shuffled[n_train : n_train + n_val]
     test_eps = shuffled[n_train + n_val :]
 
+    # The split file records episode ids rather than frame ids so that later
+    # scripts can reconstruct frame-level indices from cached features.
     return {
         "train_episodes": train_eps.tolist(),
         "val_episodes": val_eps.tolist(),
@@ -54,6 +60,8 @@ def generate_episode_split(
 
 
 def indices_from_split(episode_indices: np.ndarray, split_payload: dict[str, Any]) -> dict[str, np.ndarray]:
+    """Convert episode-level split metadata back into frame-level indices."""
+
     train_idx = np.where(np.isin(episode_indices, split_payload["train_episodes"]))[0]
     val_idx = np.where(np.isin(episode_indices, split_payload["val_episodes"]))[0]
     test_idx = np.where(np.isin(episode_indices, split_payload["test_episodes"]))[0]
@@ -61,6 +69,13 @@ def indices_from_split(episode_indices: np.ndarray, split_payload: dict[str, Any
 
 
 def compute_change_scores(values: np.ndarray, episode_indices: np.ndarray, frame_indices: np.ndarray) -> np.ndarray:
+    """Measure frame-to-frame change within each episode.
+
+    For visual features this approximates perceptual novelty, and for actions it
+    approximates motor change. The first frame of every episode is assigned zero
+    because there is no previous frame to compare against.
+    """
+
     scores = np.zeros((len(values),), dtype=np.float32)
     for episode in np.unique(episode_indices):
         episode_mask = np.where(episode_indices == episode)[0]
@@ -74,6 +89,12 @@ def compute_change_scores(values: np.ndarray, episode_indices: np.ndarray, frame
 
 
 def _episode_quotas(indices: np.ndarray, episode_indices: np.ndarray, target_count: int) -> dict[int, int]:
+    """Allocate how many samples each episode may contribute.
+
+    The quota is roughly proportional to episode length, which prevents long
+    episodes from being ignored and short episodes from dominating by chance.
+    """
+
     unique_eps, counts = np.unique(episode_indices[indices], return_counts=True)
     if target_count <= 0:
         return {int(ep): 0 for ep in unique_eps}
@@ -89,6 +110,8 @@ def _episode_quotas(indices: np.ndarray, episode_indices: np.ndarray, target_cou
 
 
 def _select_top_per_episode(indices: np.ndarray, scores: np.ndarray, episode_indices: np.ndarray, target_count: int) -> np.ndarray:
+    """Select the highest-scoring frames under episode-wise quotas."""
+
     quotas = _episode_quotas(indices, episode_indices, target_count)
     selected: list[int] = []
     for episode, quota in quotas.items():
@@ -101,6 +124,8 @@ def _select_top_per_episode(indices: np.ndarray, scores: np.ndarray, episode_ind
 
 
 def _random_per_episode(indices: np.ndarray, episode_indices: np.ndarray, target_count: int, seed: int) -> np.ndarray:
+    """Episode-balanced random baseline used for comparison."""
+
     quotas = _episode_quotas(indices, episode_indices, target_count)
     rng = np.random.default_rng(seed)
     selected: list[int] = []
@@ -114,6 +139,13 @@ def _random_per_episode(indices: np.ndarray, episode_indices: np.ndarray, target
 
 
 def _kmeans_diverse_selection(features: np.ndarray, candidate_indices: np.ndarray, utility_scores: np.ndarray, target_count: int, seed: int) -> np.ndarray:
+    """Choose a diverse subset from high-utility candidates with KMeans.
+
+    The algorithm first clusters candidate samples in feature space, then picks
+    one representative from each cluster. Within a cluster, we prefer samples
+    that are close to the centroid and also have high utility.
+    """
+
     if len(candidate_indices) <= target_count:
         return candidate_indices
 
@@ -154,14 +186,26 @@ def build_selections(
     selection_cfg: dict[str, Any],
     seed: int,
 ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """Construct all data-selection baselines used in the experiments.
+
+    The main idea is:
+    1. Compute visual-change and action-change scores on the training split.
+    2. Combine them into a utility score.
+    3. Compare simple top-k selection, random selection, and a diversity-aware
+       brain-inspired coreset strategy.
+    """
+
     train_indices = split_indices["train"]
     train_mask = np.zeros((len(features),), dtype=bool)
     train_mask[train_indices] = True
     target_count = max(1, int(round(len(train_indices) * float(selection_cfg["ratio"]))))
 
+    # Visual novelty is measured in feature space; action novelty is measured in
+    # label space. Both are computed as frame-to-frame changes within episodes.
     visual_change = compute_change_scores(features, episode_indices, frame_indices)
     action_change = compute_change_scores(actions, episode_indices, frame_indices)
 
+    # Z-score normalization makes the two score sources comparable in scale.
     visual_z = zscore(visual_change, train_mask)
     action_z = zscore(action_change, train_mask)
     utility = (
@@ -175,6 +219,8 @@ def build_selections(
     selections["visual_change"] = _select_top_per_episode(train_indices, visual_change, episode_indices, target_count)
     selections["visual_action"] = _select_top_per_episode(train_indices, utility, episode_indices, target_count)
 
+    # The brain-inspired variant first keeps only a high-utility candidate pool,
+    # then adds diversity by selecting representatives from KMeans clusters.
     candidate_ratio = float(selection_cfg.get("candidate_ratio", 0.3))
     candidate_count = max(target_count, int(round(len(train_indices) * candidate_ratio)))
     utility_ranked = train_indices[np.argsort(-utility[train_indices], kind="mergesort")]
@@ -194,15 +240,19 @@ def build_selections(
 
 
 def save_split(path: str | Path, split_payload: dict[str, Any]) -> None:
+    """Save episode split metadata to JSON."""
     save_json(path, split_payload)
 
 
 def save_scores(path: str | Path, scores: dict[str, np.ndarray]) -> None:
+    """Persist per-frame selection scores for later visualization."""
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path, **scores)
 
 
 def save_selection_files(selection_dir: str | Path, selections: dict[str, np.ndarray], ratio: float, seed: int) -> dict[str, Path]:
+    """Save sampled frame indices for every selection method."""
+
     selection_dir = Path(selection_dir)
     selection_dir.mkdir(parents=True, exist_ok=True)
     percent = ratio_to_percent(ratio)
@@ -212,4 +262,3 @@ def save_selection_files(selection_dir: str | Path, selections: dict[str, np.nda
         np.save(path, indices.astype(np.int64))
         paths[method] = path
     return paths
-
