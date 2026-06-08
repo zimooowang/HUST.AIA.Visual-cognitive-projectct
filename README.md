@@ -4,7 +4,7 @@
 
 - 自动检查并读取 LeRobot/Hugging Face 数据集
 - 提取单视角图像的冻结视觉特征
-- 将 14-DoF 动作降到单臂 7-DoF 回归任务
+- 支持默认 14-DoF 全动作回归，也支持切换到单臂 7-DoF
 - 对比 `random`、`action_change`、`visual_change`、`visual_action`、`brain_coreset`
 - 用统一的 MLP 回归器评估不同数据选择策略
 - 输出指标、图像和报告素材
@@ -141,8 +141,8 @@ bash scripts/run_all.sh
 
 `brain_coreset` 使用两阶段策略：
 
-1. 用视觉变化和动作变化构建 utility 分数
-2. 在高 utility 候选池内执行 KMeans 多样性选择
+1. 用视觉变化和动作变化构建 utility 分数；在 14 维动作下，会先做按维标准化，并分别建模左臂变化、右臂变化和双臂协同变化
+2. 在高 utility 候选池内执行联合 KMeans 多样性选择，聚类空间同时考虑视觉特征和动作特征
 
 ## 输出文件说明
 

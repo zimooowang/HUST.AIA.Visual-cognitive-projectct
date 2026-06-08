@@ -48,9 +48,17 @@ selection:
     - brain_coreset
   lambda_visual: 1.0
   lambda_action: 1.0
+  normalize_action_for_scores: true
+  lambda_action_left: 1.0
+  lambda_action_right: 1.0
+  lambda_action_coordination: 0.5
+  coordination_mode: min
   lambda_diversity: 0.5
   use_diversity: true
   diversity_method: kmeans
+  diversity_space: visual_action
+  diversity_visual_weight: 1.0
+  diversity_action_weight: 1.0
   per_episode_quota: true
 
 training:
