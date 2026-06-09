@@ -4,7 +4,7 @@
 
 - 自动检查并读取 LeRobot/Hugging Face 数据集
 - 提取单视角图像的冻结视觉特征
-- 支持默认 14-DoF 全动作回归，也支持切换到单臂 7-DoF
+- 默认使用题目要求的单臂 7-DoF 回归，同时保留 14-DoF 全动作扩展实验配置
 - 对比 `random`、`action_change`、`visual_change`、`visual_action`、`brain_coreset`
 - 用统一的 MLP 回归器评估不同数据选择策略
 - 输出指标、图像和报告素材
@@ -135,7 +135,7 @@ bash scripts/run_14d_ablations.sh
 ### 输入输出
 
 - 输入：`[image_feature, language_feature]`
-- 输出：默认 14 维全动作；也支持通过 `dataset.arm=left/right` 切换到 7 维单臂动作
+- 输出：默认 7 维单臂动作；如需 14 维全动作扩展实验，可使用 `configs/14d_default.yaml` 或将 `dataset.arm` 改为 `both`
 
 ### 特征提取
 
@@ -194,7 +194,8 @@ report_assets/tables/results_latex.txt
 - `Selection file not found`：先运行 `02_select_coreset.py`
 - 没有 CUDA：代码会自动回退到 CPU，运行速度会慢一些
 - action 维度不是 7 或 14：需要检查数据字段是否选错
-- 需要 14 维全动作训练：确认 `configs/default.yaml` 中 `dataset.arm` 为 `both`，并重新执行特征提取与后续流程
+- 需要严格按题目要求运行：直接使用 `configs/default.yaml`，其默认输出为单臂 7 维动作
+- 需要 14 维全动作训练：使用 `configs/14d_default.yaml`，或将 `dataset.arm` 改为 `both` 后重新执行特征提取与后续流程
 - KMeans 聚类数量过大：代码会自动将 cluster 数量截断到候选样本数
 
 ## 与题目要求的对应关系
