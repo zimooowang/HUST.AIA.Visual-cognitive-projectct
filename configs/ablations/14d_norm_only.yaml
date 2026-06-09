@@ -1,0 +1,78 @@
+seed: 42
+
+paths:
+  output_dir: outputs/ablations/14d_norm_only
+  feature_dir: outputs/features
+  selection_dir: outputs/ablations/14d_norm_only/selections
+  checkpoint_dir: outputs/ablations/14d_norm_only/checkpoints
+  metrics_dir: outputs/ablations/14d_norm_only/metrics
+  figure_dir: outputs/ablations/14d_norm_only/figures
+  report_asset_dir: report_assets/ablations/14d_norm_only
+
+dataset:
+  repo_id: lerobot/aloha_sim_transfer_cube_human
+  cache_dir: data/cache
+  split: train
+  image_key: null
+  action_key: action
+  episode_key: null
+  instruction_key: null
+  timestamp_key: null
+  video_backend: pyav
+  camera: auto
+  arm: both
+  max_frames: null
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+  split_by_episode: true
+
+features:
+  extractor: resnet18
+  batch_size: 64
+  device: cuda
+  normalize: true
+  save_format: npz
+  language_mode: constant
+  language_dim: 1
+  text_hash_dim: 16
+
+selection:
+  ratio: 0.10
+  candidate_ratio: 0.30
+  methods:
+    - random
+    - action_change
+    - visual_change
+    - visual_action
+    - brain_coreset
+  lambda_visual: 1.0
+  lambda_action: 1.0
+  normalize_action_for_scores: true
+  bimanual_action_scoring: false
+  lambda_action_left: 1.0
+  lambda_action_right: 1.0
+  lambda_action_coordination: 0.0
+  coordination_mode: min
+  lambda_diversity: 0.5
+  use_diversity: true
+  diversity_method: kmeans
+  diversity_space: visual
+  diversity_visual_weight: 1.0
+  diversity_action_weight: 1.0
+  per_episode_quota: true
+
+training:
+  hidden_dims: [512, 256]
+  dropout: 0.1
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 256
+  epochs: 100
+  patience: 15
+  device: cuda
+  loss: mse
+
+logging:
+  save_predictions: true
+  save_plots: true

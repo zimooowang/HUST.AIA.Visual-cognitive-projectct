@@ -166,8 +166,9 @@ def _compute_action_scores(
     normalize_actions = bool(selection_cfg.get("normalize_action_for_scores", True))
     action_values = _standardize_with_reference(actions, train_indices) if normalize_actions else actions.astype(np.float32)
     action_dim = action_values.shape[1] if action_values.ndim == 2 else 0
+    bimanual_action_scoring = bool(selection_cfg.get("bimanual_action_scoring", True))
 
-    if action_dim == 14:
+    if action_dim == 14 and bimanual_action_scoring:
         left_change = compute_change_scores(action_values[:, :7], episode_indices, frame_indices)
         right_change = compute_change_scores(action_values[:, 7:14], episode_indices, frame_indices)
         coordination = _coordination_change(

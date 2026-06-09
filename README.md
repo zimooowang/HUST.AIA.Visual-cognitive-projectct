@@ -103,6 +103,23 @@ python scripts/05_make_plots.py --config configs/default.yaml
 bash scripts/run_all.sh
 ```
 
+## 14D Ablation
+
+针对 14 维双臂动作，项目额外提供了 4 组对照配置，分别隔离“按维标准化”“仅联合聚类”“降低协同项权重”“降低动作多样性权重”四种改动：
+
+- `configs/ablations/14d_norm_only.yaml`
+- `configs/ablations/14d_joint_diversity_only.yaml`
+- `configs/ablations/14d_low_coordination.yaml`
+- `configs/ablations/14d_low_action_diversity.yaml`
+
+如果已经有 `outputs/features/features_resnet18.npz` 这份 14 维特征缓存，可以直接批量运行：
+
+```bash
+bash scripts/run_14d_ablations.sh
+```
+
+每组实验会把 `selection/checkpoint/metrics/figures/report_assets` 输出到各自独立的 `outputs/ablations/...` 和 `report_assets/ablations/...` 目录，避免覆盖默认实验结果。
+
 ## 各脚本功能
 
 - `scripts/00_inspect_dataset.py`: 检查数据集长度、字段结构和候选 key
