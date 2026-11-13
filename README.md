@@ -1,4 +1,4 @@
-# VLA Data Selection for Vision Cognitive Engineering
+# HUST.AIA《视觉认知工程》课程设计：VLA Data Selection for Vision Cognitive Engineering
 
 本项目对应《视觉认知工程》课程题目二：基于脑启发核心集选择的轻量级 VLA 机械臂动作预测。它面向 `lerobot/aloha_sim_transfer_cube_human` 数据集，构建了一个完整、可复现、适合课程报告撰写的实验闭环：
 
